@@ -1,0 +1,5 @@
+# Example Configuration, copy this to config.toml and configure it to use.
+
+[me]
+username = "" # Your RA Username
+apiKey = "" # Your RA Api Key, retrieveable at https://retroachievements.org/settings
