@@ -12,6 +12,7 @@ import (
 	"github.com/joshraphael/go-retroachievements"
 	"github.com/joshraphael/go-retroachievements/models"
 	"github.com/mitchellh/go-wordwrap"
+	"gra/achievement"
 	"gra/font"
 	"gra/icon"
 	"image"
@@ -32,6 +33,7 @@ const (
 
 	ModeAuto   Mode = "Auto"
 	ModeManual Mode = "Manual"
+	ModeWeekly Mode = "Weekly"
 )
 
 type Mode = string
@@ -44,25 +46,37 @@ var (
 
 	//go:embed trophy.png
 	TrophyImage []byte
+
+	//go:embed trophy_unearned.png
+	TrophyUnearnedImage []byte
 )
 
 type Gra struct {
-	SelectedAchievement int
-	UserProgress        *models.GetGameInfoAndUserProgress
-	OrderedAchievements []models.GetGameInfoAndUserProgressAchievement
-	BorderImage         *image.Image
-	TrophyImage         *image.Image
-	Client              *retroachievements.Client
-	Config              *Config
-	LatestRefresh       time.Time
-	FontSource          *text.GoTextFaceSource
-	CurrentMode         Mode
+	SelectedAchievement  int
+	UserProgress         *models.GetGameInfoAndUserProgress
+	OrderedAchievements  []achievement.Achievement
+	AchievementOfTheWeek *models.GetAchievementOfTheWeek
+	BorderImage          *image.Image
+	TrophyImage          *image.Image
+	TrophyUnearnedImage  *image.Image
+	Client               *retroachievements.Client
+	Config               *Config
+	LatestRefresh        time.Time
+	FontSource           *text.GoTextFaceSource
+	CurrentMode          Mode
+}
+
+type Achievement struct {
 }
 
 func (g *Gra) Update() error {
 	var nextRefresh = g.LatestRefresh.Add(g.Config.Connect.RefreshInterval * time.Second)
 	if time.Now().After(nextRefresh) {
 		err := g.refreshAchievements()
+		if err != nil {
+			return fmt.Errorf("error refreshing achievements: %w", err)
+		}
+		err = g.refreshAchievementOfTheWeek()
 		if err != nil {
 			return fmt.Errorf("error refreshing achievements: %w", err)
 		}
@@ -132,35 +146,17 @@ func (g *Gra) refreshAchievements() error {
 		return err
 	}
 
-	var orderedAchievements []models.GetGameInfoAndUserProgressAchievement
-	for _, achievement := range progress.Achievements {
-		orderedAchievements = append(orderedAchievements, achievement)
+	var orderedAchievements []achievement.Achievement
+	for _, currentAchievement := range progress.Achievements {
+		orderedAchievements = append(orderedAchievements, achievement.FromGetGameInfoAndUserProgressAchievement(currentAchievement))
 	}
-	slices.SortFunc(orderedAchievements, func(a, b models.GetGameInfoAndUserProgressAchievement) int {
+	slices.SortFunc(orderedAchievements, func(a, b achievement.Achievement) int {
 		return a.ID - b.ID
 	})
 
 	g.UserProgress = progress
 	g.OrderedAchievements = orderedAchievements
 	return nil
-}
-
-func (g *Gra) DrawTitle(screen *ebiten.Image) {
-	var title string
-	if g.UserProgress == nil {
-		title = "Loading..."
-	} else {
-		title = g.UserProgress.Title
-	}
-	op := &text.DrawOptions{}
-	op.PrimaryAlign = text.AlignCenter
-	op.GeoM.Translate(float64(screen.Bounds().Dx()/2), 10)
-	op.ColorScale.ScaleWithColor(color.White)
-
-	text.Draw(screen, title, &text.GoTextFace{
-		Source: g.FontSource,
-		Size:   16,
-	}, op)
 }
 
 func (g *Gra) drawAchievements(screen *ebiten.Image) {
@@ -209,6 +205,17 @@ func (g *Gra) handleInput() {
 		if inpututil.IsKeyJustPressed(ebiten.KeyEscape) {
 			g.CurrentMode = ModeAuto
 		}
+	} else {
+		if inpututil.IsKeyJustPressed(ebiten.KeyEscape) {
+			g.CurrentMode = ModeManual
+		}
+	}
+	if inpututil.IsKeyJustPressed(ebiten.KeyW) {
+		if g.CurrentMode == ModeWeekly {
+			g.CurrentMode = ModeManual
+		} else {
+			g.CurrentMode = ModeWeekly
+		}
 	}
 
 	if inpututil.IsKeyJustPressed(ebiten.KeyNumpadAdd) {
@@ -255,8 +262,12 @@ func (g *Gra) drawCurrentAchievement(screen *ebiten.Image) {
 	geo := ebiten.GeoM{}
 	geo.Translate(float64(initialOffsets.X), float64(initialOffsets.Y))
 
-	achievement := g.OrderedAchievements[g.SelectedAchievement]
-	badge, err := loadBadge(achievement.BadgeName, achievement.DateEarnedHardcore != nil)
+	selectedAchievement := g.OrderedAchievements[g.SelectedAchievement]
+	if g.CurrentMode == ModeWeekly {
+		selectedAchievement = achievement.FromGetAchievementOfTheWeekAchievement(g.AchievementOfTheWeek.Achievement)
+		selectedAchievement.DateEarnedHardcore = g.getBeatenAchievementOfTheWeek()
+	}
+	badge, err := loadBadge(selectedAchievement.BadgeName, selectedAchievement.DateEarnedHardcore != nil)
 	if err != nil {
 		return
 	}
@@ -264,22 +275,29 @@ func (g *Gra) drawCurrentAchievement(screen *ebiten.Image) {
 		GeoM: geo,
 	})
 
-	if achievement.DateEarnedHardcore != nil {
-		geoT := ebiten.GeoM{}
-		geoT.Translate(float64(initialOffsets.X/2), float64(initialOffsets.Y/2))
-		geoT.Translate(0, Spacer/2+10)
-		geoT.Scale(2, 2)
-
+	geoT := ebiten.GeoM{}
+	geoT.Translate(float64(initialOffsets.X/2), float64(initialOffsets.Y/2))
+	geoT.Translate(0, Spacer/2+10)
+	geoT.Scale(2, 2)
+	if selectedAchievement.DateEarnedHardcore != nil {
 		screen.DrawImage(ebiten.NewImageFromImage(ebiten.NewImageFromImage(*g.TrophyImage)), &ebiten.DrawImageOptions{
 			GeoM: geoT,
 		})
 		g.drawText(screen, float64(initialOffsets.X+32+3), float64(initialOffsets.Y+DefaultBadgeSize+DefaultBadgeSize+24), "Done!", text.AlignCenter, color.RGBA{G: 255})
+	} else {
+		screen.DrawImage(ebiten.NewImageFromImage(ebiten.NewImageFromImage(*g.TrophyUnearnedImage)), &ebiten.DrawImageOptions{
+			GeoM: geoT,
+		})
 	}
 
 	//Achievement details
-	g.drawText(screen, float64(screen.Bounds().Dx()/2), float64(initialOffsets.Y-5-42), "[Selected Achievement]", text.AlignCenter, color.White)
-	g.drawText(screen, float64(initialOffsets.X+DefaultBadgeSize+20), float64(initialOffsets.Y-5), achievement.Title, text.AlignStart, color.White)
-	g.drawText(screen, float64(initialOffsets.X+DefaultBadgeSize+20), float64(initialOffsets.Y+70), achievement.Description, text.AlignStart, color.White)
+	category := "[Selected Achievement]"
+	if g.CurrentMode == ModeWeekly {
+		category = fmt.Sprintf("[Weekly Achievement: %s]", g.AchievementOfTheWeek.Game.Title)
+	}
+	g.drawText(screen, float64(screen.Bounds().Dx()/2), float64(initialOffsets.Y-5-42), category, text.AlignCenter, color.White)
+	g.drawText(screen, float64(initialOffsets.X+DefaultBadgeSize+20), float64(initialOffsets.Y-5), selectedAchievement.Title, text.AlignStart, color.White)
+	g.drawText(screen, float64(initialOffsets.X+DefaultBadgeSize+20), float64(initialOffsets.Y+70), selectedAchievement.Description, text.AlignStart, color.White)
 
 	//Mode
 	if !g.Config.Display.HideMode { // No need to draw mode if manual is forced
@@ -306,6 +324,32 @@ func (g *Gra) drawText(screen *ebiten.Image, x float64, y float64, txt string, a
 			Size:   32,
 		}, op)
 	}
+}
+
+func (g *Gra) refreshAchievementOfTheWeek() error {
+	if g.getBeatenAchievementOfTheWeek() != nil { // No need to refresh if you know you have beaten it already
+		return nil
+	}
+	var err error
+
+	g.AchievementOfTheWeek, err = g.Client.GetAchievementOfTheWeek(models.GetAchievementOfTheWeekParameters{})
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (g *Gra) getBeatenAchievementOfTheWeek() *models.DateTime {
+	if g.AchievementOfTheWeek == nil {
+		return nil
+	}
+	for _, unlock := range g.AchievementOfTheWeek.Unlocks {
+		if unlock.User == g.Config.Connect.Username && unlock.HardcoreMode == 1 {
+			return &models.DateTime{Time: unlock.DateAwarded}
+		}
+	}
+	return nil
 }
 
 func loadBadge(name string, earned bool) (*ebiten.Image, error) {
@@ -356,7 +400,7 @@ type Config struct {
 func main() {
 	var err error
 
-	border, trophy, err := loadImages()
+	border, trophy, trophyUnearned, err := loadImages()
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -387,15 +431,21 @@ func main() {
 	}
 
 	gra := &Gra{
-		BorderImage: border,
-		TrophyImage: trophy,
-		Client:      retroachievements.NewClient(config.Connect.ApiKey),
-		Config:      config,
-		FontSource:  fontSource,
-		CurrentMode: mode,
+		BorderImage:         border,
+		TrophyImage:         trophy,
+		TrophyUnearnedImage: trophyUnearned,
+		Client:              retroachievements.NewClient(config.Connect.ApiKey),
+		Config:              config,
+		FontSource:          fontSource,
+		CurrentMode:         mode,
 	}
 
 	err = gra.refreshAchievements() // Initial preload
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	err = gra.refreshAchievementOfTheWeek()
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -429,17 +479,22 @@ func loadConfig() (*Config, error) {
 	return &config, nil
 }
 
-func loadImages() (*image.Image, *image.Image, error) {
+func loadImages() (*image.Image, *image.Image, *image.Image, error) {
 	var err error
 
 	borderPNG, err := png.Decode(bytes.NewReader(BorderImage))
 	if err != nil {
-		return nil, nil, fmt.Errorf("error decoding border.png: %w", err)
+		return nil, nil, nil, fmt.Errorf("error decoding border.png: %w", err)
 	}
 
 	trophyPNG, err := png.Decode(bytes.NewReader(TrophyImage))
 	if err != nil {
-		return nil, nil, fmt.Errorf("error decoding trophy.png: %w", err)
+		return nil, nil, nil, fmt.Errorf("error decoding trophy.png: %w", err)
 	}
-	return &borderPNG, &trophyPNG, nil
+
+	trophyUnearnedPNG, err := png.Decode(bytes.NewReader(TrophyUnearnedImage))
+	if err != nil {
+		return nil, nil, nil, fmt.Errorf("error decoding trophy_unearned.png: %w", err)
+	}
+	return &borderPNG, &trophyPNG, &trophyUnearnedPNG, nil
 }
