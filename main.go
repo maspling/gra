@@ -283,7 +283,7 @@ func (g *Gra) drawCurrentAchievement(screen *ebiten.Image) {
 		screen.DrawImage(ebiten.NewImageFromImage(ebiten.NewImageFromImage(*g.TrophyImage)), &ebiten.DrawImageOptions{
 			GeoM: geoT,
 		})
-		g.drawText(screen, float64(initialOffsets.X+32+3), float64(initialOffsets.Y+DefaultBadgeSize+DefaultBadgeSize+24), "Done!", text.AlignCenter, color.RGBA{G: 255})
+		g.drawText(screen, float64(initialOffsets.X+32+3), float64(initialOffsets.Y+DefaultBadgeSize+DefaultBadgeSize+24), "Done!", text.AlignCenter, color.RGBA{G: 255}, false)
 	} else {
 		screen.DrawImage(ebiten.NewImageFromImage(ebiten.NewImageFromImage(*g.TrophyUnearnedImage)), &ebiten.DrawImageOptions{
 			GeoM: geoT,
@@ -295,17 +295,17 @@ func (g *Gra) drawCurrentAchievement(screen *ebiten.Image) {
 	if g.CurrentMode == ModeWeekly {
 		category = fmt.Sprintf("[Weekly Achievement: %s]", g.AchievementOfTheWeek.Game.Title)
 	}
-	g.drawText(screen, float64(screen.Bounds().Dx()/2), float64(initialOffsets.Y-5-42), category, text.AlignCenter, color.White)
-	g.drawText(screen, float64(initialOffsets.X+DefaultBadgeSize+20), float64(initialOffsets.Y)+7, selectedAchievement.Title, text.AlignStart, color.White)
-	g.drawText(screen, float64(initialOffsets.X+DefaultBadgeSize+20), float64(initialOffsets.Y+70), selectedAchievement.Description, text.AlignStart, color.White)
+	g.drawText(screen, float64(screen.Bounds().Dx()/2), float64(initialOffsets.Y-5-42), category, text.AlignCenter, color.White, false)
+	g.drawText(screen, float64(initialOffsets.X+DefaultBadgeSize+20), float64(initialOffsets.Y)+16, selectedAchievement.Title, text.AlignStart, color.White, true)
+	g.drawText(screen, float64(initialOffsets.X+DefaultBadgeSize+20), float64(initialOffsets.Y+70), selectedAchievement.Description, text.AlignStart, color.White, false)
 
 	//Mode
 	if !g.Config.Display.HideMode { // No need to draw mode if manual is forced
-		g.drawText(screen, float64(screen.Bounds().Max.X), float64(screen.Bounds().Max.Y-26), g.CurrentMode, text.AlignEnd, color.Gray{Y: 100})
+		g.drawText(screen, float64(screen.Bounds().Max.X), float64(screen.Bounds().Max.Y-26), g.CurrentMode, text.AlignEnd, color.Gray{Y: 100}, false)
 	}
 }
 
-func (g *Gra) drawText(screen *ebiten.Image, x float64, y float64, txt string, align text.Align, color color.Color) {
+func (g *Gra) drawText(screen *ebiten.Image, x float64, y float64, txt string, align text.Align, color color.Color, verticalAdjust bool) {
 	//Replace problematic chars
 	txt = strings.ReplaceAll(txt, "’", "'")
 
@@ -314,7 +314,11 @@ func (g *Gra) drawText(screen *ebiten.Image, x float64, y float64, txt string, a
 	op.PrimaryAlign = align
 	op.GeoM.Translate(x, y)
 	op.ColorScale.ScaleWithColor(color)
-	for i, line := range strings.Split(txt, "\n") {
+	lines := strings.Split(txt, "\n")
+	if verticalAdjust {
+		op.GeoM.Translate(0, -float64(len(lines)-1)*12)
+	}
+	for i, line := range lines {
 		line = strings.TrimSpace(line)
 		if i != 0 {
 			op.GeoM.Translate(0, 24)
