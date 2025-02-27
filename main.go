@@ -109,7 +109,7 @@ func (g *Gra) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeight
 	if g.UserProgress != nil {
 		rows := g.getNumberOfAchievementRows()
 		size := g.getAchievementSize()
-		details := Spacer + 220
+		details := Spacer + 240
 		rowSize := g.Config.Display.AchievementsPerRow * size
 		if rows*size+details != outsideHeight || rowSize != outsideWidth {
 			ebiten.SetWindowSize(rowSize, rows*size+details)
