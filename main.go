@@ -420,7 +420,7 @@ func loadConfig() (*Config, error) {
 	if config.Connect.RefreshInterval == 0 {
 		config.Connect.RefreshInterval = 5
 	}
-	if config.Display.AchievementsPerRow == 0 {
+	if config.Display.AchievementsPerRow < 1 {
 		config.Display.AchievementsPerRow = 8
 	}
 	return &config, nil
