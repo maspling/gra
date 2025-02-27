@@ -1,5 +1,10 @@
 # Example Configuration, copy this to config.toml and configure it to use.
 
-[me]
+[connect]
 username = "" # Your RA Username
 apiKey = "" # Your RA Api Key, retrieveable at https://retroachievements.org/settings
+refreshInterval = 5 # Number of seconds between checking for achievement status.
+
+[display]
+achievementsPerRow = 8 # Achievements per row, raise and lower during runtime with keypad +/-
+achievementSizeMultiple = 1 # Achievements are 64x64 by default
