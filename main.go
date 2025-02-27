@@ -296,7 +296,7 @@ func (g *Gra) drawCurrentAchievement(screen *ebiten.Image) {
 		category = fmt.Sprintf("[Weekly Achievement: %s]", g.AchievementOfTheWeek.Game.Title)
 	}
 	g.drawText(screen, float64(screen.Bounds().Dx()/2), float64(initialOffsets.Y-5-42), category, text.AlignCenter, color.White)
-	g.drawText(screen, float64(initialOffsets.X+DefaultBadgeSize+20), float64(initialOffsets.Y-5), selectedAchievement.Title, text.AlignStart, color.White)
+	g.drawText(screen, float64(initialOffsets.X+DefaultBadgeSize+20), float64(initialOffsets.Y)+7, selectedAchievement.Title, text.AlignStart, color.White)
 	g.drawText(screen, float64(initialOffsets.X+DefaultBadgeSize+20), float64(initialOffsets.Y+70), selectedAchievement.Description, text.AlignStart, color.White)
 
 	//Mode
