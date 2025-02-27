@@ -66,9 +66,6 @@ type Gra struct {
 	CurrentMode          Mode
 }
 
-type Achievement struct {
-}
-
 func (g *Gra) Update() error {
 	var nextRefresh = g.LatestRefresh.Add(g.Config.Connect.RefreshInterval * time.Second)
 	if time.Now().After(nextRefresh) {
@@ -86,8 +83,8 @@ func (g *Gra) Update() error {
 	//Auto mode
 	if g.CurrentMode == ModeAuto {
 		firstUnbeaten := 0
-		for i, achievement := range g.OrderedAchievements {
-			if achievement.DateEarnedHardcore == nil {
+		for i, currentAchievement := range g.OrderedAchievements {
+			if currentAchievement.DateEarnedHardcore == nil {
 				firstUnbeaten = i
 				break
 			}
@@ -168,7 +165,7 @@ func (g *Gra) drawAchievements(screen *ebiten.Image) {
 	}
 
 	var currentRow float64 = 0
-	for i, achievement := range g.OrderedAchievements {
+	for i, currentAchievement := range g.OrderedAchievements {
 		geo := ebiten.GeoM{}
 		geo.Translate(float64(initialOffsets.X), float64(initialOffsets.Y))
 
@@ -178,7 +175,7 @@ func (g *Gra) drawAchievements(screen *ebiten.Image) {
 
 		geo.Translate(achievementSize*float64(i%g.Config.Display.AchievementsPerRow), 64*currentRow)
 
-		badge, err := loadBadge(achievement.BadgeName, achievement.DateEarnedHardcore != nil)
+		badge, err := loadBadge(currentAchievement.BadgeName, currentAchievement.DateEarnedHardcore != nil)
 		if err != nil {
 			log.Printf("error loading badge: %v", err)
 			return
@@ -309,7 +306,7 @@ func (g *Gra) drawText(screen *ebiten.Image, x float64, y float64, txt string, a
 	//Replace problematic chars
 	txt = strings.ReplaceAll(txt, "’", "'")
 
-	txt = wordwrap.WrapString(txt, 36)
+	txt = wordwrap.WrapString(txt, uint((g.Config.Display.AchievementsPerRow-1)*6)-7)
 	op := &text.DrawOptions{}
 	op.PrimaryAlign = align
 	op.GeoM.Translate(x, y)
