@@ -29,9 +29,10 @@ The binary `gra` should be available in the same folder.
 | hideMode           | display  | bool   | no       | Disable Mode display in lower right corner. **Default: false**                                 | 
 
 ## Keys
-| Key                      | Note                                                  |
-|--------------------------|-------------------------------------------------------|
-| Arrow Up/Left/Right/Down | Move achievement selector, will trigger *Manual Mode* |
-| ESC                      | Switch to *Auto Mode*                                 |
-| Keypad +                 | Increase achievements per row by 1                    |
-| Keypad -                 | Decrease achievements per row by 1                    |
+| Key                      | Note                                                                 |
+|--------------------------|----------------------------------------------------------------------|
+| Arrow Up/Left/Right/Down | Move achievement selector, will trigger *Manual Mode*                |
+| ESC                      | Switch to *Auto Mode* (or *Manual Mode* if *Auto Mode* is disabled)  |
+| W                        | Show Achievement of the week, press again to return to *Manual Mode* |
+| Keypad +                 | Increase achievements per row by 1                                   |
+| Keypad -                 | Decrease achievements per row by 1                                   |
