@@ -85,7 +85,7 @@ func (g *Gra) getNumberOfAchievementRows() int {
 }
 
 func (g *Gra) getAchievementSize() int {
-	return DefaultBadgeSize * g.Config.Display.AchievementSizeMultiple
+	return DefaultBadgeSize
 }
 
 func (g *Gra) refreshAchievements() error {
@@ -141,7 +141,7 @@ func (g *Gra) DrawTitle(screen *ebiten.Image) {
 
 func (g *Gra) drawAchievements(screen *ebiten.Image) {
 	initialOffsets := geom.Point{X: 0, Y: 0}
-	achievementSize := float64(DefaultBadgeSize * g.Config.Display.AchievementSizeMultiple)
+	achievementSize := float64(DefaultBadgeSize)
 
 	if g.UserProgress == nil {
 		return
@@ -235,7 +235,7 @@ func (g *Gra) drawCurrentAchievement(screen *ebiten.Image) {
 		screen.DrawImage(ebiten.NewImageFromImage(ebiten.NewImageFromImage(*g.TrophyImage)), &ebiten.DrawImageOptions{
 			GeoM: geoT,
 		})
-		g.drawText(screen, float64(initialOffsets.X+32+3), float64(initialOffsets.Y+64+64+24), "Done!", text.AlignCenter, color.RGBA{0, 255, 0, 0})
+		g.drawText(screen, float64(initialOffsets.X+32+3), float64(initialOffsets.Y+64+64+24), "Done!", text.AlignCenter, color.RGBA{G: 255})
 	}
 
 	// Achievement Title
@@ -276,7 +276,7 @@ func loadBadge(name string, earned bool) (*ebiten.Image, error) {
 		if err != nil {
 			return nil, err
 		}
-		defer resp.Body.Close()
+		defer panicIfError(resp.Body.Close)
 		rawPNG, err := png.Decode(resp.Body)
 		if err != nil {
 			return nil, err
@@ -288,6 +288,12 @@ func loadBadge(name string, earned bool) (*ebiten.Image, error) {
 	return badge, nil
 }
 
+func panicIfError(f func() error) {
+	if err := f(); err != nil {
+		panic(err)
+	}
+}
+
 type Config struct {
 	Connect struct {
 		Username        string        `toml:"username"`
@@ -295,8 +301,7 @@ type Config struct {
 		RefreshInterval time.Duration `toml:"refreshInterval"`
 	} `toml:"connect"`
 	Display struct {
-		AchievementsPerRow      int `toml:"achievementsPerRow"`
-		AchievementSizeMultiple int `toml:"achievementSizeMultiple"`
+		AchievementsPerRow int `toml:"achievementsPerRow"`
 	} `toml:"display"`
 }
 
@@ -340,7 +345,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	startingWidth := DefaultBadgeSize * config.Display.AchievementsPerRow * config.Display.AchievementSizeMultiple
+	startingWidth := DefaultBadgeSize * config.Display.AchievementsPerRow
 	ebiten.SetWindowSize(startingWidth, gra.getNumberOfAchievementRows())
 	ebiten.SetWindowTitle("Retro Achievements")
 	ebiten.SetTPS(30)
@@ -371,13 +376,13 @@ func loadImages() (*image.Image, *image.Image, error) {
 	if err != nil {
 		return nil, nil, fmt.Errorf("error opening border.png: %w", err)
 	}
-	defer border.Close()
+	defer panicIfError(border.Close)
 
 	trophy, err := os.Open("trophy.png")
 	if err != nil {
 		return nil, nil, fmt.Errorf("error opening trophy.png: %w", err)
 	}
-	defer border.Close()
+	defer panicIfError(trophy.Close)
 
 	borderPNG, err := png.Decode(border)
 	if err != nil {
