@@ -29,7 +29,12 @@ const (
 	BaseBadgeUrl     = "https://media.retroachievements.org/Badge/"
 	DefaultBadgeSize = 64
 	Spacer           = 64
+
+	ModeAuto   Mode = "Auto"
+	ModeManual Mode = "Manual"
 )
+
+type Mode = string
 
 var (
 	ImageCache = make(map[string]*ebiten.Image)
@@ -45,6 +50,7 @@ type Gra struct {
 	Config              *Config
 	LatestRefresh       time.Time
 	FontSource          *text.GoTextFaceSource
+	CurrentMode         Mode
 }
 
 func (g *Gra) Update() error {
@@ -55,6 +61,18 @@ func (g *Gra) Update() error {
 			return fmt.Errorf("error refreshing achievements: %w", err)
 		}
 		g.LatestRefresh = time.Now()
+	}
+
+	//Auto mode
+	if g.CurrentMode == ModeAuto {
+		firstUnbeaten := 0
+		for i, achievement := range g.OrderedAchievements {
+			if achievement.DateEarnedHardcore == nil {
+				firstUnbeaten = i
+				break
+			}
+		}
+		g.SelectedAchievement = firstUnbeaten
 	}
 
 	g.handleInput()
@@ -180,6 +198,13 @@ func (g *Gra) handleInput() {
 	if g.UserProgress == nil {
 		return
 	}
+
+	if !g.Config.Display.DisableAutoMode {
+		if inpututil.IsKeyJustPressed(ebiten.KeyEscape) {
+			g.CurrentMode = ModeAuto
+		}
+	}
+
 	if inpututil.IsKeyJustPressed(ebiten.KeyNumpadAdd) {
 		g.Config.Display.AchievementsPerRow++
 	}
@@ -191,15 +216,19 @@ func (g *Gra) handleInput() {
 		if g.SelectedAchievement < 0 {
 			g.SelectedAchievement = 0
 		}
+		g.CurrentMode = ModeManual
 	} else if inpututil.IsKeyJustPressed(ebiten.KeyRight) {
 		g.SelectedAchievement += 1
+		g.CurrentMode = ModeManual
 	} else if inpututil.IsKeyJustPressed(ebiten.KeyUp) {
 		g.SelectedAchievement -= g.Config.Display.AchievementsPerRow
 		if g.SelectedAchievement < 0 {
 			g.SelectedAchievement = 0
 		}
+		g.CurrentMode = ModeManual
 	} else if inpututil.IsKeyJustPressed(ebiten.KeyDown) {
 		g.SelectedAchievement += g.Config.Display.AchievementsPerRow
+		g.CurrentMode = ModeManual
 	}
 
 	if g.SelectedAchievement >= g.UserProgress.NumAchievements {
@@ -235,17 +264,22 @@ func (g *Gra) drawCurrentAchievement(screen *ebiten.Image) {
 		screen.DrawImage(ebiten.NewImageFromImage(ebiten.NewImageFromImage(*g.TrophyImage)), &ebiten.DrawImageOptions{
 			GeoM: geoT,
 		})
-		g.drawText(screen, float64(initialOffsets.X+32+3), float64(initialOffsets.Y+64+64+24), "Done!", text.AlignCenter, color.RGBA{G: 255})
+		g.drawText(screen, float64(initialOffsets.X+32+3), float64(initialOffsets.Y+DefaultBadgeSize+DefaultBadgeSize+24), "Done!", text.AlignCenter, color.RGBA{G: 255})
 	}
 
-	// Achievement Title
+	//Achievement details
+	g.drawText(screen, float64(screen.Bounds().Dx()/2), float64(initialOffsets.Y-5-42), "[Selected Achievement]", text.AlignCenter, color.White)
+	g.drawText(screen, float64(initialOffsets.X+DefaultBadgeSize+20), float64(initialOffsets.Y-5), achievement.Title, text.AlignStart, color.White)
+	g.drawText(screen, float64(initialOffsets.X+DefaultBadgeSize+20), float64(initialOffsets.Y+27), achievement.Description, text.AlignStart, color.White)
 
-	g.drawText(screen, float64(initialOffsets.X+64+20), float64(initialOffsets.Y-5), achievement.Title, text.AlignStart, color.White)
-	g.drawText(screen, float64(initialOffsets.X+64+20), float64(initialOffsets.Y+27), achievement.Description, text.AlignStart, color.White)
+	//Mode
+	if !g.Config.Display.HideMode { // No need to draw mode if manual is forced
+		g.drawText(screen, float64(screen.Bounds().Max.X), float64(screen.Bounds().Max.Y-26), g.CurrentMode, text.AlignEnd, color.Gray{Y: 100})
+	}
 }
 
 func (g *Gra) drawText(screen *ebiten.Image, x float64, y float64, txt string, align text.Align, color color.Color) {
-	txt = wordwrap.WrapString(txt, 38)
+	txt = wordwrap.WrapString(txt, 36)
 	op := &text.DrawOptions{}
 	op.PrimaryAlign = align
 	op.GeoM.Translate(x, y)
@@ -301,7 +335,9 @@ type Config struct {
 		RefreshInterval time.Duration `toml:"refreshInterval"`
 	} `toml:"connect"`
 	Display struct {
-		AchievementsPerRow int `toml:"achievementsPerRow"`
+		AchievementsPerRow int  `toml:"achievementsPerRow"`
+		DisableAutoMode    bool `toml:"disableAutoMode"`
+		HideMode           bool `toml:"hideMode"`
 	} `toml:"display"`
 }
 
@@ -332,12 +368,19 @@ func main() {
 		log.Fatal("Connect API key or username missing")
 	}
 
+	mode := ModeAuto
+	if config.Display.DisableAutoMode {
+		config.Display.HideMode = true
+		mode = ModeManual
+	}
+
 	gra := &Gra{
 		BorderImage: border,
 		TrophyImage: trophy,
 		Client:      retroachievements.NewClient(config.Connect.ApiKey),
 		Config:      config,
 		FontSource:  fontSource,
+		CurrentMode: mode,
 	}
 
 	err = gra.refreshAchievements() // Initial preload
@@ -345,8 +388,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	startingWidth := DefaultBadgeSize * config.Display.AchievementsPerRow
-	ebiten.SetWindowSize(startingWidth, gra.getNumberOfAchievementRows())
+	gra.Layout(0, 0)
 	ebiten.SetWindowTitle("Retro Achievements")
 	ebiten.SetTPS(30)
 	ebiten.SetWindowIcon(icons)
@@ -365,6 +407,12 @@ func loadConfig() (*Config, error) {
 	_, err := toml.DecodeFile("config.toml", &config)
 	if err != nil {
 		return nil, fmt.Errorf("error loading config.toml: %s", err)
+	}
+	if config.Connect.RefreshInterval == 0 {
+		config.Connect.RefreshInterval = 5
+	}
+	if config.Display.AchievementsPerRow == 0 {
+		config.Display.AchievementsPerRow = 8
 	}
 	return &config, nil
 }

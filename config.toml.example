@@ -7,3 +7,5 @@ refreshInterval = 5 # Number of seconds between checking for achievement status.
 
 [display]
 achievementsPerRow = 8 # Achievements per row, raise and lower during runtime with keypad +/-
+disableAutoMode = false # Auto-mode automatically targets the next unclaimed achievement, can be overridden with cursor keys.
+hideMode = false # Hides Auto/Manual display in the lower right corner (automatically hidden if auto mode is disabled)
