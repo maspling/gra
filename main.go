@@ -95,7 +95,7 @@ func (g *Gra) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeight
 	if g.UserProgress != nil {
 		rows := g.getNumberOfAchievementRows()
 		size := g.getAchievementSize()
-		details := Spacer + 200
+		details := Spacer + 220
 		rowSize := g.Config.Display.AchievementsPerRow * size
 		if rows*size+details != outsideHeight || rowSize != outsideWidth {
 			ebiten.SetWindowSize(rowSize, rows*size+details)
@@ -279,7 +279,7 @@ func (g *Gra) drawCurrentAchievement(screen *ebiten.Image) {
 	//Achievement details
 	g.drawText(screen, float64(screen.Bounds().Dx()/2), float64(initialOffsets.Y-5-42), "[Selected Achievement]", text.AlignCenter, color.White)
 	g.drawText(screen, float64(initialOffsets.X+DefaultBadgeSize+20), float64(initialOffsets.Y-5), achievement.Title, text.AlignStart, color.White)
-	g.drawText(screen, float64(initialOffsets.X+DefaultBadgeSize+20), float64(initialOffsets.Y+27), achievement.Description, text.AlignStart, color.White)
+	g.drawText(screen, float64(initialOffsets.X+DefaultBadgeSize+20), float64(initialOffsets.Y+70), achievement.Description, text.AlignStart, color.White)
 
 	//Mode
 	if !g.Config.Display.HideMode { // No need to draw mode if manual is forced
@@ -288,6 +288,9 @@ func (g *Gra) drawCurrentAchievement(screen *ebiten.Image) {
 }
 
 func (g *Gra) drawText(screen *ebiten.Image, x float64, y float64, txt string, align text.Align, color color.Color) {
+	//Replace problematic chars
+	txt = strings.ReplaceAll(txt, "’", "'")
+
 	txt = wordwrap.WrapString(txt, 36)
 	op := &text.DrawOptions{}
 	op.PrimaryAlign = align
