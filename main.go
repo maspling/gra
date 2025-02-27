@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	_ "embed"
 	"fmt"
 	"github.com/BurntSushi/toml"
 	"github.com/ebitengine/gomobile/geom"
@@ -19,7 +20,6 @@ import (
 	"log"
 	"math"
 	"net/http"
-	"os"
 	"slices"
 	"strings"
 	"time"
@@ -38,6 +38,12 @@ type Mode = string
 
 var (
 	ImageCache = make(map[string]*ebiten.Image)
+
+	//go:embed border.png
+	BorderImage []byte
+
+	//go:embed trophy.png
+	TrophyImage []byte
 )
 
 type Gra struct {
@@ -420,24 +426,12 @@ func loadConfig() (*Config, error) {
 func loadImages() (*image.Image, *image.Image, error) {
 	var err error
 
-	border, err := os.Open("border.png")
-	if err != nil {
-		return nil, nil, fmt.Errorf("error opening border.png: %w", err)
-	}
-	defer panicIfError(border.Close)
-
-	trophy, err := os.Open("trophy.png")
-	if err != nil {
-		return nil, nil, fmt.Errorf("error opening trophy.png: %w", err)
-	}
-	defer panicIfError(trophy.Close)
-
-	borderPNG, err := png.Decode(border)
+	borderPNG, err := png.Decode(bytes.NewReader(BorderImage))
 	if err != nil {
 		return nil, nil, fmt.Errorf("error decoding border.png: %w", err)
 	}
 
-	trophyPNG, err := png.Decode(trophy)
+	trophyPNG, err := png.Decode(bytes.NewReader(TrophyImage))
 	if err != nil {
 		return nil, nil, fmt.Errorf("error decoding trophy.png: %w", err)
 	}
