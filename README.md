@@ -1,4 +1,4 @@
-# GRA! - Go Retro Achievements tracker
+# GRA! A Go Retro Achievement tracker
 A small tracker meant to showcase the current progress of your achievement hunting,
 as well as to easily navigate which ones remain.
 
