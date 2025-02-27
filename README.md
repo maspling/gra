@@ -27,3 +27,11 @@ The binary `gra` should be available in the same folder.
 | achievementsPerRow | display  | int    | no       | How many achievements to display per row. **Default: 8**                                       |
 | disableAutoMode    | display  | bool   | no       | Disable Auto Mode. **Default: false**                                                          |
 | hideMode           | display  | bool   | no       | Disable Mode display in lower right corner. **Default: false**                                 | 
+
+## Keys
+| Key                      | Note                                                 |
+|--------------------------|------------------------------------------------------|
+| Arrow Up/Left/Right/Down | Move achievement selector, will trigger Manual mode. |
+| ESC                      | Switch to Auto Mode.                                 |
+| Keypad +                 | Increase Achievements per row by 1                   |
+| Keypad -                 | Decrease Achievements per row by 1                   |

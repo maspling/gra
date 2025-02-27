@@ -215,7 +215,10 @@ func (g *Gra) handleInput() {
 		g.Config.Display.AchievementsPerRow++
 	}
 	if inpututil.IsKeyJustPressed(ebiten.KeyNumpadSubtract) {
-		g.Config.Display.AchievementsPerRow--
+		if g.Config.Display.AchievementsPerRow > 1 {
+			g.Config.Display.AchievementsPerRow--
+		}
+
 	}
 	if inpututil.IsKeyJustPressed(ebiten.KeyLeft) {
 		g.SelectedAchievement -= 1
