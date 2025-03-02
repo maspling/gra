@@ -36,3 +36,11 @@ The binary `gra` should be available in the same folder.
 | W                        | Show Achievement of the week, press again to return to *Manual Mode* |
 | Keypad +                 | Increase achievements per row by 1                                   |
 | Keypad -                 | Decrease achievements per row by 1                                   |
+
+## Libraries Used
+These are the main awesome libraries used for building *GRA!* go give them a star!
+
+| Library              | URL                                                 | Description                                               |
+|----------------------|-----------------------------------------------------|-----------------------------------------------------------|
+| ebiten               | https://github.com/hajimehoshi/ebiten               | Game engine, used for the ease of rendering the app in GL |
+| go-retroachievements | https://github.com/joshraphael/go-retroachievements | Go library for retro achievements web API                 |
