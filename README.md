@@ -19,6 +19,8 @@ The binary `gra` should be available in the same folder.
 
 ## Config
 
+The program will look for the config.toml file at `current folder`, as well as `~/.config/gra/config.toml`.
+
 | Config             | Category | Type   | Required | Comment                                                                                        |
 |--------------------|----------|--------|----------|------------------------------------------------------------------------------------------------|
 | username           | connect  | string | yes      | RA username of user whom the application should track.                                         |
@@ -26,7 +28,8 @@ The binary `gra` should be available in the same folder.
 | refreshInterval    | connect  | int    | no       | How often in seconds the application should poll for new information from RA. **Default: 5**   |
 | achievementsPerRow | display  | int    | no       | How many achievements to display per row. **Default: 8**                                       |
 | disableAutoMode    | display  | bool   | no       | Disable Auto Mode. **Default: false**                                                          |
-| hideMode           | display  | bool   | no       | Disable Mode display in lower right corner. **Default: false**                                 | 
+| hideMode           | display  | bool   | no       | Disable Mode display in lower right corner. **Default: false**                                 |
+| swapFallbackFont   | display  | bool   | no       | Use the fallback font primarily instead. **Default: false**                                    |
 
 ## Keys
 | Key                      | Note                                                                 |
@@ -34,6 +37,7 @@ The binary `gra` should be available in the same folder.
 | Arrow Up/Left/Right/Down | Move achievement selector, will trigger *Manual Mode*                |
 | ESC                      | Switch to *Auto Mode* (or *Manual Mode* if *Auto Mode* is disabled)  |
 | W                        | Show Achievement of the week, press again to return to *Manual Mode* |
+| F                        | Swap to fallback font with better glyph support                      |
 | Keypad +                 | Increase achievements per row by 1                                   |
 | Keypad -                 | Decrease achievements per row by 1                                   |
 

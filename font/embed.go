@@ -7,4 +7,7 @@ import (
 var (
 	//go:embed bookxel.ttf
 	Bookxel []byte
+
+	//go:embed zpix.ttf
+	Zpix []byte
 )

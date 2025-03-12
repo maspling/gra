@@ -10,6 +10,7 @@ type Achievement struct {
 	DateEarnedHardcore *models.DateTime
 	Title              string
 	Description        string
+	Points             int
 }
 
 func FromGetGameInfoAndUserProgressAchievement(achievement models.GetGameInfoAndUserProgressAchievement) Achievement {
@@ -19,6 +20,7 @@ func FromGetGameInfoAndUserProgressAchievement(achievement models.GetGameInfoAnd
 		DateEarnedHardcore: achievement.DateEarnedHardcore,
 		Title:              achievement.Title,
 		Description:        achievement.Description,
+		Points:             achievement.Points,
 	}
 }
 
@@ -29,5 +31,6 @@ func FromGetAchievementOfTheWeekAchievement(achievement models.GetAchievementOfT
 		DateEarnedHardcore: nil,
 		Title:              achievement.Title,
 		Description:        achievement.Description,
+		Points:             achievement.Points,
 	}
 }

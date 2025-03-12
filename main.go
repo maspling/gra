@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	_ "embed"
+	"errors"
 	"fmt"
 	"github.com/BurntSushi/toml"
 	"github.com/ebitengine/gomobile/geom"
@@ -21,6 +22,8 @@ import (
 	"log"
 	"math"
 	"net/http"
+	"os"
+	"path"
 	"slices"
 	"strings"
 	"time"
@@ -62,8 +65,15 @@ type Gra struct {
 	Client               *retroachievements.Client
 	Config               *Config
 	LatestRefresh        time.Time
-	FontSource           *text.GoTextFaceSource
+	Font                 Font
+	FontFallback         Font
+	CurrentFont          *Font
 	CurrentMode          Mode
+}
+
+type Font struct {
+	Source *text.GoTextFaceSource
+	Size   float64
 }
 
 func (g *Gra) Update() error {
@@ -215,6 +225,14 @@ func (g *Gra) handleInput() {
 		}
 	}
 
+	if inpututil.IsKeyJustPressed(ebiten.KeyF) {
+		if g.CurrentFont == &g.Font {
+			g.CurrentFont = &g.FontFallback
+		} else {
+			g.CurrentFont = &g.Font
+		}
+	}
+
 	if inpututil.IsKeyJustPressed(ebiten.KeyNumpadAdd) {
 		g.Config.Display.AchievementsPerRow++
 	}
@@ -293,7 +311,7 @@ func (g *Gra) drawCurrentAchievement(screen *ebiten.Image) {
 		category = fmt.Sprintf("[Weekly Achievement: %s]", g.AchievementOfTheWeek.Game.Title)
 	}
 	g.drawText(screen, float64(screen.Bounds().Dx()/2), float64(initialOffsets.Y-5-42), category, text.AlignCenter, color.White, false)
-	g.drawText(screen, float64(initialOffsets.X+DefaultBadgeSize+20), float64(initialOffsets.Y)+16, selectedAchievement.Title, text.AlignStart, color.White, true)
+	g.drawText(screen, float64(initialOffsets.X+DefaultBadgeSize+20), float64(initialOffsets.Y)+16, fmt.Sprintf("%s (%d)", selectedAchievement.Title, selectedAchievement.Points), text.AlignStart, color.White, true)
 	g.drawText(screen, float64(initialOffsets.X+DefaultBadgeSize+20), float64(initialOffsets.Y+70), selectedAchievement.Description, text.AlignStart, color.White, false)
 
 	//Mode
@@ -321,8 +339,8 @@ func (g *Gra) drawText(screen *ebiten.Image, x float64, y float64, txt string, a
 			op.GeoM.Translate(0, 24)
 		}
 		text.Draw(screen, line, &text.GoTextFace{
-			Source: g.FontSource,
-			Size:   32,
+			Source: g.CurrentFont.Source,
+			Size:   g.CurrentFont.Size,
 		}, op)
 	}
 }
@@ -395,6 +413,7 @@ type Config struct {
 		AchievementsPerRow int  `toml:"achievementsPerRow"`
 		DisableAutoMode    bool `toml:"disableAutoMode"`
 		HideMode           bool `toml:"hideMode"`
+		SwapFallbackFont   bool `toml:"swapFallbackFont"`
 	} `toml:"display"`
 }
 
@@ -411,7 +430,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	fontSource, err := loadFont()
+	fontSource, fontSourceFallback, err := loadFont()
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -431,13 +450,20 @@ func main() {
 		mode = ModeManual
 	}
 
+	currentFont := fontSource
+	if config.Display.SwapFallbackFont {
+		currentFont = fontSourceFallback
+	}
+
 	gra := &Gra{
 		BorderImage:         border,
 		TrophyImage:         trophy,
 		TrophyUnearnedImage: trophyUnearned,
 		Client:              retroachievements.NewClient(config.Connect.ApiKey),
 		Config:              config,
-		FontSource:          fontSource,
+		Font:                *fontSource,
+		FontFallback:        *fontSourceFallback,
+		CurrentFont:         currentFont,
 		CurrentMode:         mode,
 	}
 
@@ -461,11 +487,30 @@ func main() {
 	}
 }
 
-func loadFont() (*text.GoTextFaceSource, error) {
-	return text.NewGoTextFaceSource(bytes.NewReader(font.Bookxel))
+func loadFont() (*Font, *Font, error) {
+	fs, err := text.NewGoTextFaceSource(bytes.NewReader(font.Bookxel))
+	if err != nil {
+		return nil, nil, err
+	}
+	fsFallback, err := text.NewGoTextFaceSource(bytes.NewReader(font.Zpix))
+	if err != nil {
+		return nil, nil, err
+	}
+	return &Font{Source: fs, Size: 32}, &Font{Source: fsFallback, Size: 22}, err
 }
 
 func loadConfig() (*Config, error) {
+	var foundLocation string
+	locations := []string{"config.toml", path.Clean("~/.config/gra/config.toml")}
+	for _, location := range locations {
+		if _, err := os.Stat(location); err == nil {
+			foundLocation = location
+		}
+	}
+	if foundLocation == "" {
+		return nil, errors.New("could not find any configuration")
+	}
+	
 	var config Config
 	_, err := toml.DecodeFile("config.toml", &config)
 	if err != nil {
