@@ -501,7 +501,11 @@ func loadFont() (*Font, *Font, error) {
 
 func loadConfig() (*Config, error) {
 	var foundLocation string
-	locations := []string{"config.toml", path.Clean("~/.config/gra/config.toml")}
+	locations := []string{"config.toml"}
+	if home, err := os.UserHomeDir(); err == nil {
+		locations = append(locations, path.Clean(home+"/.config/gra/config.toml"))
+	}
+
 	for _, location := range locations {
 		if _, err := os.Stat(location); err == nil {
 			foundLocation = location
@@ -510,9 +514,9 @@ func loadConfig() (*Config, error) {
 	if foundLocation == "" {
 		return nil, errors.New("could not find any configuration")
 	}
-	
+
 	var config Config
-	_, err := toml.DecodeFile("config.toml", &config)
+	_, err := toml.DecodeFile(foundLocation, &config)
 	if err != nil {
 		return nil, fmt.Errorf("error loading config.toml: %s", err)
 	}
