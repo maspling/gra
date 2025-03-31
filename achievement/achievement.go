@@ -11,6 +11,7 @@ type Achievement struct {
 	Title              string
 	Description        string
 	Points             int
+	DisplayOrder       int
 }
 
 func FromGetGameInfoAndUserProgressAchievement(achievement models.GetGameInfoAndUserProgressAchievement) Achievement {
@@ -21,6 +22,7 @@ func FromGetGameInfoAndUserProgressAchievement(achievement models.GetGameInfoAnd
 		Title:              achievement.Title,
 		Description:        achievement.Description,
 		Points:             achievement.Points,
+		DisplayOrder:       achievement.DisplayOrder,
 	}
 }
 
