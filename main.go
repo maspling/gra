@@ -158,7 +158,7 @@ func (g *Gra) refreshAchievements() error {
 		orderedAchievements = append(orderedAchievements, achievement.FromGetGameInfoAndUserProgressAchievement(currentAchievement))
 	}
 	slices.SortFunc(orderedAchievements, func(a, b achievement.Achievement) int {
-		if a.DisplayOrder == 0 && b.DisplayOrder == 0 {
+		if a.DisplayOrder == b.DisplayOrder {
 			return a.ID - b.ID
 		}
 		return a.DisplayOrder - b.DisplayOrder
