@@ -384,7 +384,12 @@ func loadBadge(name string, earned bool) (*ebiten.Image, error) {
 
 	badge, ok := ImageCache[fullName]
 	if !ok {
-		resp, err := http.Get(BaseBadgeUrl + fullName)
+		req, err := http.NewRequest("GET", BaseBadgeUrl+fullName, nil)
+		if err != nil {
+			return nil, err
+		}
+		req.Header.Set("User-Agent", "Gra/1.0")
+		resp, err := http.DefaultClient.Do(req)
 		if err != nil {
 			return nil, err
 		}
