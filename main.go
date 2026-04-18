@@ -62,6 +62,9 @@ type Gra struct {
 	BorderImage          *image.Image
 	TrophyImage          *image.Image
 	TrophyUnearnedImage  *image.Image
+	ProgressionImage     *image.Image
+	WinImage             *image.Image
+	MissableImage        *image.Image
 	Client               *retroachievements.Client
 	Config               *Config
 	LatestRefresh        time.Time
@@ -196,6 +199,25 @@ func (g *Gra) drawAchievements(screen *ebiten.Image) {
 		screen.DrawImage(ebiten.NewImageFromImage(badge), &ebiten.DrawImageOptions{
 			GeoM: geo,
 		})
+
+		var overlay *image.Image
+		switch currentAchievement.Type {
+		case "progression":
+			overlay = g.ProgressionImage
+		case "win_condition":
+			overlay = g.WinImage
+		case "missable":
+			overlay = g.MissableImage
+		}
+		if overlay != nil {
+			overlaySize := (*overlay).Bounds().Dx()
+			overlayGeo := ebiten.GeoM{}
+			overlayGeo.Concat(geo)
+			overlayGeo.Translate(float64(DefaultBadgeSize-overlaySize), float64(DefaultBadgeSize-overlaySize))
+			screen.DrawImage(ebiten.NewImageFromImage(*overlay), &ebiten.DrawImageOptions{
+				GeoM: overlayGeo,
+			})
+		}
 
 		if i == g.SelectedAchievement {
 			screen.DrawImage(ebiten.NewImageFromImage(*g.BorderImage), &ebiten.DrawImageOptions{
@@ -438,6 +460,24 @@ func main() {
 		log.Fatal(err)
 	}
 
+	progressionImg, err := icon.LoadProgression(24)
+	if err != nil {
+		log.Fatal(err)
+	}
+	var progressionImage image.Image = progressionImg
+
+	winImg, err := icon.LoadWin(24)
+	if err != nil {
+		log.Fatal(err)
+	}
+	var winImage image.Image = winImg
+
+	missableImg, err := icon.LoadMissable(24)
+	if err != nil {
+		log.Fatal(err)
+	}
+	var missableImage image.Image = missableImg
+
 	fontSource, fontSourceFallback, err := loadFont()
 	if err != nil {
 		log.Fatal(err)
@@ -467,6 +507,9 @@ func main() {
 		BorderImage:         border,
 		TrophyImage:         trophy,
 		TrophyUnearnedImage: trophyUnearned,
+		ProgressionImage:    &progressionImage,
+		WinImage:            &winImage,
+		MissableImage:       &missableImage,
 		Client:              retroachievements.NewClient(config.Connect.ApiKey),
 		Config:              config,
 		Font:                *fontSource,

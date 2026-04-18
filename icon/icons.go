@@ -4,7 +4,11 @@ import (
 	"bytes"
 	_ "embed"
 	"image"
+	"image/color"
 	"image/png"
+
+	"github.com/srwiley/oksvg"
+	"github.com/srwiley/rasterx"
 )
 
 var (
@@ -19,6 +23,15 @@ var (
 
 	//go:embed icon64.png
 	size64 []byte
+
+	//go:embed progression.svg
+	progressionSVG []byte
+
+	//go:embed win.svg
+	winSVG []byte
+
+	//go:embed missable.svg
+	missableSVG []byte
 )
 
 func LoadIcons() ([]image.Image, error) {
@@ -41,4 +54,35 @@ func loadIcon(b []byte) (image.Image, error) {
 		return nil, err
 	}
 	return icon, nil
+}
+
+func LoadProgression(size int) (image.Image, error) {
+	return rasterizeSVG(progressionSVG, size)
+}
+
+func LoadWin(size int) (image.Image, error) {
+	return rasterizeSVG(winSVG, size)
+}
+
+func LoadMissable(size int) (image.Image, error) {
+	return rasterizeSVG(missableSVG, size)
+}
+
+func rasterizeSVG(data []byte, size int) (image.Image, error) {
+	icon, err := oksvg.ReadIconStream(bytes.NewReader(data))
+	if err != nil {
+		return nil, err
+	}
+	icon.SetTarget(0, 0, float64(size), float64(size))
+	rgba := image.NewRGBA(image.Rect(0, 0, size, size))
+	scanner := rasterx.NewScannerGV(size, size, rgba, rgba.Bounds())
+
+	scanner.SetColor(color.Black)
+	filler := rasterx.NewFiller(size, size, scanner)
+	center := float64(size) / 2
+	rasterx.AddCircle(center, center, float64(size)*0.4167, filler)
+	filler.Draw()
+
+	icon.Draw(rasterx.NewDasher(size, size, scanner), 1)
+	return rgba, nil
 }

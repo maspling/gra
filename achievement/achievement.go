@@ -12,6 +12,7 @@ type Achievement struct {
 	Description        string
 	Points             int
 	DisplayOrder       int
+	Type               string
 }
 
 func FromGetGameInfoAndUserProgressAchievement(achievement models.GetGameInfoAndUserProgressAchievement) Achievement {
@@ -23,10 +24,15 @@ func FromGetGameInfoAndUserProgressAchievement(achievement models.GetGameInfoAnd
 		Description:        achievement.Description,
 		Points:             achievement.Points,
 		DisplayOrder:       achievement.DisplayOrder,
+		Type:               achievement.Type,
 	}
 }
 
 func FromGetAchievementOfTheWeekAchievement(achievement models.GetAchievementOfTheWeekAchievement) Achievement {
+	var achievementType string
+	if achievement.Type != nil {
+		achievementType = *achievement.Type
+	}
 	return Achievement{
 		ID:                 achievement.ID,
 		BadgeName:          achievement.BadgeName,
@@ -34,5 +40,6 @@ func FromGetAchievementOfTheWeekAchievement(achievement models.GetAchievementOfT
 		Title:              achievement.Title,
 		Description:        achievement.Description,
 		Points:             achievement.Points,
+		Type:               achievementType,
 	}
 }
