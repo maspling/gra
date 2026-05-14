@@ -86,9 +86,8 @@ func (g *Gra) Update() error {
 		if err != nil {
 			return fmt.Errorf("error refreshing achievements: %w", err)
 		}
-		err = g.refreshAchievementOfTheWeek()
-		if err != nil {
-			return fmt.Errorf("error refreshing achievements: %w", err)
+		if err := g.refreshAchievementOfTheWeek(); err != nil {
+			log.Printf("error refreshing achievement of the week: %v", err)
 		}
 		g.LatestRefresh = time.Now()
 	}
@@ -245,7 +244,7 @@ func (g *Gra) handleInput() {
 	if inpututil.IsKeyJustPressed(ebiten.KeyW) {
 		if g.CurrentMode == ModeWeekly {
 			g.CurrentMode = ModeManual
-		} else {
+		} else if g.AchievementOfTheWeek != nil {
 			g.CurrentMode = ModeWeekly
 		}
 	}
@@ -523,9 +522,8 @@ func main() {
 		log.Fatal(err)
 	}
 
-	err = gra.refreshAchievementOfTheWeek()
-	if err != nil {
-		log.Fatal(err)
+	if err := gra.refreshAchievementOfTheWeek(); err != nil {
+		log.Printf("error refreshing achievement of the week: %v", err)
 	}
 
 	gra.Layout(0, 0)
